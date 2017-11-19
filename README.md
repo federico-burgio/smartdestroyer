@@ -11,3 +11,7 @@ https://hub.docker.com
 ### Visual Studio Code
 https://code.visualstudio.com
 
+## Credits
+Federico Burgio - Lead Architect @ BaxEnergy
+http://www.baxenergy.com
+http://www.freemindfoundry.com
