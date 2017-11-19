@@ -16,42 +16,51 @@ namespace smartdestroyer.Controllers
         [HttpGet]
         public async Task<string> Get()
         {
-            HttpClient radarClient = new HttpClient();
-            var response = await radarClient.GetAsync("http://localhost:4000/api/radar");
-
-            if(response.StatusCode == HttpStatusCode.OK) 
+            try
             {
-                try
-                {
-                    string message = await response.Content.ReadAsStringAsync();
-                    List<EnemyCoordinates> foundEnemies = Newtonsoft.Json.JsonConvert.DeserializeObject<IEnumerable<EnemyCoordinates>>(message).ToList();
+                HttpClient radarClient = new HttpClient();
+                Console.WriteLine("Calling Radar service @ http://radar:4000/api/radar");
+                var response = await radarClient.GetAsync("http://radar:4000/api/radar");
 
-                    if(foundEnemies.Any() == false)
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    try
                     {
-                        return "Sky is clear :-)";   
-                    }
-                    else
-                    {
-                        int hitCount = 0;
-                        foreach(EnemyCoordinates enemyCoordinates in foundEnemies)
+                        string message = await response.Content.ReadAsStringAsync();
+                        List<EnemyCoordinates> foundEnemies = Newtonsoft.Json.JsonConvert.DeserializeObject<IEnumerable<EnemyCoordinates>>(message).ToList();
+
+                        if (foundEnemies.Any() == false)
                         {
-                            bool hit = await TryBlast(enemyCoordinates);
-                            if(hit)
-                                hitCount++;
+                            return "Sky is clear :-)";
                         }
+                        else
+                        {
+                            int hitCount = 0;
+                            foreach (EnemyCoordinates enemyCoordinates in foundEnemies)
+                            {
+                                bool hit = await TryBlast(enemyCoordinates);
+                                if (hit)
+                                    hitCount++;
+                            }
 
-                        return $"Found {foundEnemies.Count} enemies, {hitCount} was blasted successfully.";  
-                    }                    
+                            return $"Found {foundEnemies.Count} enemies, {hitCount} was blasted successfully.";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.ToString());
+                        return "Unable to get coordinates from Radar";
+                    }
                 }
-                catch(Exception ex)
+                else
                 {
-                    Console.WriteLine(ex.ToString());
-                    return "Unable to get coordinates from Radar";   
+                    return "Radar is not working";
                 }
             }
-            else
+            catch (Exception ex)
             {
-                return "Radar is not working";   
+                Console.WriteLine(ex.ToString());
+                return "Radar is not working";
             }
         }
 
@@ -59,25 +68,28 @@ namespace smartdestroyer.Controllers
         {
             HttpClient blastCannonClient = new HttpClient();
             StringContent content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(enemyCoordinates), Encoding.UTF8, "application/json");
-            var response = await blastCannonClient.PostAsync("http://localhost:5000/api/blast", content);
             
-            if(response.StatusCode == HttpStatusCode.OK) 
+            Console.WriteLine("Calling Blast Cannon service @ http://blastcannon:5000/api/blast");
+            var response = await blastCannonClient.PostAsync("http://blastcannon:5000/api/blast", content);
+
+            if (response.StatusCode == HttpStatusCode.OK)
             {
                 try
                 {
                     string message = await response.Content.ReadAsStringAsync();
 
-                    return string.IsNullOrWhiteSpace(message) == false;
+                    return string.IsNullOrWhiteSpace(message) == false
+                        && message.Contains("HIT");
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Console.WriteLine(ex.ToString());
-                    return false;  
+                    return false;
                 }
             }
             else
             {
-                return false; 
+                return false;
             }
         }
     }
